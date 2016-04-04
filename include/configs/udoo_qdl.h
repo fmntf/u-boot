@@ -1,7 +1,8 @@
 /*
  * Copyright (C) 2013 Freescale Semiconductor, Inc.
+ * Copyright (C) 2015 UDOO Team
  *
- * Configuration settings for Udoo board.
+ * Configuration settings for UDOO Quad/Dual board.
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -19,7 +20,7 @@
 #define CONFIG_MACH_TYPE	MACH_TYPE_UDOO
 
 /* Size of malloc() pool */
-#define CONFIG_SYS_MALLOC_LEN		(2 * SZ_1M)
+#define CONFIG_SYS_MALLOC_LEN		(10 * SZ_1M)
 
 #define CONFIG_BOARD_EARLY_INIT_F
 #define CONFIG_BOARD_LATE_INIT
@@ -63,10 +64,29 @@
 /* MMC Configuration */
 #define CONFIG_SYS_FSL_ESDHC_ADDR	0
 
+/* Framebuffer */
+#define CONFIG_VIDEO
+#define CONFIG_VIDEO_IPUV3
+#define CONFIG_CFB_CONSOLE
+#define CONFIG_VGA_AS_SINGLE_DEVICE
+#define CONFIG_SYS_CONSOLE_IS_IN_ENV
+#define CONFIG_SYS_CONSOLE_OVERWRITE_ROUTINE
+#define CONFIG_VIDEO_BMP_RLE8
+#define CONFIG_SPLASH_SCREEN
+#define CONFIG_SPLASH_SCREEN_ALIGN
+#define CONFIG_BMP_16BPP
+#define CONFIG_VIDEO_LOGO
+#define CONFIG_VIDEO_BMP_LOGO
+#define CONFIG_IPUV3_CLK 260000000
+#define CONFIG_CMD_HDMIDETECT
+#define CONFIG_IMX_HDMI
+#define CONFIG_IMX_VIDEO_SKIP
+
+
 #define CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
-	"script=boot.scr\0" \
+	"script=uEnv.txt\0" \
 	"image=zImage\0" \
 	"console=ttymxc1\0" \
 	"splashpos=m,m\0" \
@@ -93,14 +113,15 @@
 				"mmc write ${loadaddr} 0x2 ${fw_sz}; " \
 			"fi; "	\
 		"fi\0" \
-	"mmcargs=setenv bootargs console=${console},${baudrate} " \
+	"mmcargs=setenv bootargs console=${console},${baudrate} ${video} ${memory} " \
 		"root=${mmcroot}\0" \
 	"loadbootscript=" \
-		"load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
+		"fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
 	"bootscript=echo Running bootscript from mmc ...; " \
-		"source\0" \
-	"loadimage=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${image}\0" \
-	"loadfdt=load mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
+		"env import -t ${loadaddr} ${filesize}; " \
+		"run uenvboot\0" \
+	"loadimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${image}\0" \
+	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
 	"mmcboot=echo Booting from mmc ...; " \
 		"run mmcargs; " \
 		"if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
@@ -142,9 +163,9 @@
 		"fi;\0" \
 		"findfdt=" \
 			"if test $board_rev = MX6Q ; then " \
-				"setenv fdt_file imx6q-udoo.dtb; fi; " \
+				"setenv fdt_file dts/imx6q-udoo.dtb; fi; " \
 			"if test $board_rev = MX6DL ; then " \
-				"setenv fdt_file imx6dl-udoo.dtb; fi; " \
+				"setenv fdt_file dts/imx6dl-udoo.dtb; fi; " \
 			"if test $fdt_file = undefined; then " \
 				"echo WARNING: Could not determine dtb to use; fi; \0"
 
@@ -153,11 +174,10 @@
 	   "mmc dev ${mmcdev}; if mmc rescan; then " \
 		   "if run loadbootscript; then " \
 			   "run bootscript; " \
-		   "else " \
-			   "if run loadimage; then " \
-				   "run mmcboot; " \
-			   "else run netboot; " \
-			   "fi; " \
+		   "fi; " \
+		   "if run loadimage; then " \
+			   "run mmcboot; " \
+		   "else run netboot; " \
 		   "fi; " \
 	   "else run netboot; fi"
 
