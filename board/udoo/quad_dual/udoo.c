@@ -26,6 +26,7 @@
 #include <micrel.h>
 #include <miiphy.h>
 #include <netdev.h>
+#include "../common/trim.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -336,31 +337,6 @@ int checkboard(void)
 	return 0;
 }
 
-
-int isspace(char c)
-{
-	return (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\12');
-}
-char *trim(char *str)
-{
-	char *end;
-
-	// Trim leading space
-	while(isspace(*str)) str++;
-
-	if(*str == 0)  // All spaces?
-	return str;
-
-	// Trim trailing space
-	end = str + strlen(str) - 1;
-	while(end > str && isspace(*end)) end--;
-
-	// Write new null terminator
-	*(end+1) = 0;
-
-	return str;
-}
-
 /**
  * After loading uEnv.txt, we autodetect which fdt file we need to load.
  * uEnv.txt can contain:
@@ -390,6 +366,15 @@ int do_udooinit(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			video_part = "-lvds7";
 		} else if (strcmp(video, "lvds15") == 0) {
 			video_part = "-lvds15";
+		}
+	}
+	
+	char* actual_fdt = getenv("fdt_file");
+	if (actual_fdt) {
+		actual_fdt = trim(actual_fdt);
+		if (strcmp(actual_fdt, "autodetect") != 0) {
+			// if fdt_file is already set, do not overwrite it!
+			return 0;
 		}
 	}
 	
